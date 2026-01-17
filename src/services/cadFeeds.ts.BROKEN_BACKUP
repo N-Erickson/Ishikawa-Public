@@ -1,0 +1,298 @@
+import { Incident, IncidentSeverity, IncidentType } from '../types';
+
+// REAL-TIME CAD (Computer Aided Dispatch) feeds
+// These update in real-time as 911 calls come in
+
+// Seattle Real-Time 911 Calls (LIVE FEED - updates every minute)
+export async function fetchSeattleRealTime911(): Promise<Incident[]> {
+  try {
+    const response = await fetch(
+      `https://data.seattle.gov/resource/kzjm-xkqj.json?$limit=500&$order=datetime DESC`
+    );
+    if (!response.ok) throw new Error(`Seattle 911 API error: ${response.status}`);
+    const data = await response.json();
+
+    return data
+      .filter((call: any) => call.latitude && call.longitude)
+      .map((call: any) => ({
+        id: `seattle-911-${call.cad_event_number}`,
+        title: `Seattle 911: ${call.type}`,
+        description: `${call.initial_type_description} - ${call.initial_type_group}`,
+        type: IncidentType.EMERGENCY,
+        severity: IncidentSeverity.HIGH,
+        location: {
+          lat: parseFloat(call.latitude),
+          lon: parseFloat(call.longitude),
+        },
+        locationName: `${call.hundred_block_location}, Seattle, WA`,
+        timestamp: new Date(call.datetime),
+        source: 'Seattle 911 CAD LIVE',
+      }));
+  } catch (error) {
+    console.error('Error fetching Seattle real-time 911:', error);
+    return [];
+  }
+}
+
+// New York City 311/911 Calls (LIVE - updates constantly)
+export async function fetchNYCRealTime911(): Promise<Incident[]> {
+  try {
+    const response = await fetch(
+      `https://data.cityofnewyork.us/resource/erm2-nwe9.json?$limit=500&$order=created_date DESC`
+    );
+    if (!response.ok) throw new Error(`NYC 311 API error: ${response.status}`);
+    const data = await response.json();
+
+    return data
+      .filter((call: any) => call.latitude && call.longitude)
+      .map((call: any) => ({
+        id: `nyc-311-${call.unique_key}`,
+        title: `NYC 311: ${call.complaint_type}`,
+        description: `${call.descriptor} - ${call.agency_name}`,
+        type: IncidentType.EMERGENCY,
+        severity: IncidentSeverity.MEDIUM,
+        location: {
+          lat: parseFloat(call.latitude),
+          lon: parseFloat(call.longitude),
+        },
+        locationName: `${call.incident_address}, ${call.borough}, NY`,
+        timestamp: new Date(call.created_date),
+        source: 'NYC 311 LIVE',
+      }));
+  } catch (error) {
+    console.error('Error fetching NYC real-time 311:', error);
+    return [];
+  }
+}
+
+// San Francisco Real-Time Emergency Calls (LIVE CAD)
+export async function fetchSFRealTime911(): Promise<Incident[]> {
+  try {
+    const response = await fetch(
+      `https://data.sfgov.org/resource/nuek-vuh3.json?$limit=500&$order=call_date DESC`
+    );
+    if (!response.ok) throw new Error(`SF 911 API error: ${response.status}`);
+    const data = await response.json();
+
+    return data
+      .filter((call: any) => call.point?.coordinates)
+      .map((call: any) => ({
+        id: `sf-911-${call.call_number}`,
+        title: `SFFD: ${call.call_type}`,
+        description: `${call.call_type_group} - Battalion ${call.battalion}`,
+        type: IncidentType.EMERGENCY,
+        severity: IncidentSeverity.HIGH,
+        location: {
+          lat: call.point.coordinates[1],
+          lon: call.point.coordinates[0],
+        },
+        locationName: `${call.zipcode || 'San Francisco'}, CA`,
+        timestamp: new Date(call.call_date),
+        source: 'SFFD CAD LIVE',
+      }));
+  } catch (error) {
+    console.error('Error fetching SF real-time 911:', error);
+    return [];
+  }
+}
+
+// Chicago Fire Real-Time Dispatch (LIVE)
+export async function fetchChicagoFireRealTime(): Promise<Incident[]> {
+  try {
+    const response = await fetch(
+      `https://data.cityofchicago.org/resource/6zsd-86xi.json?$limit=500&$order=incident_date DESC`
+    );
+    if (!response.ok) throw new Error(`Chicago Fire API error: ${response.status}`);
+    const data = await response.json();
+
+    return data
+      .filter((call: any) => call.latitude && call.longitude)
+      .map((call: any) => ({
+        id: `chicago-fire-${call.incident_number}`,
+        title: `CFD: ${call.incident_type}`,
+        description: `${call.alarm} - ${call.suppression_personnel_on_scene} personnel`,
+        type: IncidentType.EMERGENCY,
+        severity: call.alarm?.includes('STILL') ? IncidentSeverity.HIGH : IncidentSeverity.MEDIUM,
+        location: {
+          lat: parseFloat(call.latitude),
+          lon: parseFloat(call.longitude),
+        },
+        locationName: `Chicago, IL`,
+        timestamp: new Date(call.incident_date),
+        source: 'Chicago Fire CAD LIVE',
+      }));
+  } catch (error) {
+    console.error('Error fetching Chicago fire real-time:', error);
+    return [];
+  }
+}
+
+// Baltimore 911 Calls (LIVE)
+export async function fetchBaltimoreRealTime911(): Promise<Incident[]> {
+  try {
+    const response = await fetch(
+      `https://data.baltimorecity.gov/resource/m8g9-zb6p.json?$limit=500&$order=callDateTime DESC`
+    );
+    if (!response.ok) throw new Error(`Baltimore 911 API error: ${response.status}`);
+    const data = await response.json();
+
+    return data
+      .filter((call: any) => call.location?.coordinates)
+      .map((call: any) => ({
+        id: `baltimore-911-${call.callNumber}`,
+        title: `Baltimore 911: ${call.callType}`,
+        description: `${call.description} - Priority ${call.priority}`,
+        type: IncidentType.EMERGENCY,
+        severity: call.priority === '1' ? IncidentSeverity.HIGH : IncidentSeverity.MEDIUM,
+        location: {
+          lat: call.location.coordinates[1],
+          lon: call.location.coordinates[0],
+        },
+        locationName: `${call.neighborhood || 'Baltimore'}, MD`,
+        timestamp: new Date(call.callDateTime),
+        source: 'Baltimore 911 CAD LIVE',
+      }));
+  } catch (error) {
+    console.error('Error fetching Baltimore real-time 911:', error);
+    return [];
+  }
+}
+
+// Los Angeles Fire Department Real-Time (LIVE)
+export async function fetchLAFireRealTime(): Promise<Incident[]> {
+  try {
+    const response = await fetch(
+      `https://data.lacity.org/resource/e4gw-azd8.json?$limit=500&$order=dispatch_date_time DESC`
+    );
+    if (!response.ok) throw new Error(`LA Fire API error: ${response.status}`);
+    const data = await response.json();
+
+    return data
+      .filter((call: any) => call.latitude && call.longitude)
+      .map((call: any) => ({
+        id: `lafd-${call.incident_number}`,
+        title: `LAFD: ${call.incident_type}`,
+        description: `${call.address} - ${call.battalion}`,
+        type: IncidentType.EMERGENCY,
+        severity: IncidentSeverity.HIGH,
+        location: {
+          lat: parseFloat(call.latitude),
+          lon: parseFloat(call.longitude),
+        },
+        locationName: `${call.district || 'Los Angeles'}, CA`,
+        timestamp: new Date(call.dispatch_date_time),
+        source: 'LAFD CAD LIVE',
+      }));
+  } catch (error) {
+    console.error('Error fetching LA Fire real-time:', error);
+    return [];
+  }
+}
+
+// Austin Travis County EMS (LIVE)
+export async function fetchAustinEMSRealTime(): Promise<Incident[]> {
+  try {
+    const response = await fetch(
+      `https://data.austintexas.gov/resource/gjtj-jt2d.json?$limit=500&$order=problem_first_unit_dispatched DESC`
+    );
+    if (!response.ok) throw new Error(`Austin EMS API error: ${response.status}`);
+    const data = await response.json();
+
+    return data
+      .filter((call: any) => call.latitude_x && call.longitude_x)
+      .map((call: any) => ({
+        id: `austin-ems-${call.incident_number}`,
+        title: `ATCEMS: ${call.problem}`,
+        description: `Priority ${call.priority} - ${call.problem}`,
+        type: IncidentType.EMERGENCY,
+        severity: call.priority === '1' ? IncidentSeverity.HIGH : IncidentSeverity.MEDIUM,
+        location: {
+          lat: parseFloat(call.latitude_x),
+          lon: parseFloat(call.longitude_x),
+        },
+        locationName: `Austin, TX`,
+        timestamp: new Date(call.problem_first_unit_dispatched),
+        source: 'Austin-Travis County EMS LIVE',
+      }));
+  } catch (error) {
+    console.error('Error fetching Austin EMS real-time:', error);
+    return [];
+  }
+}
+
+// Dallas Police Calls (LIVE)
+export async function fetchDallasRealTime911(): Promise<Incident[]> {
+  try {
+    const response = await fetch(
+      `https://www.dallasopendata.com/resource/qv6i-rri7.json?$limit=500&$order=date1 DESC`
+    );
+    if (!response.ok) throw new Error(`Dallas 911 API error: ${response.status}`);
+    const data = await response.json();
+
+    return data
+      .filter((call: any) => call.geocoded_column?.coordinates)
+      .map((call: any) => ({
+        id: `dallas-911-${call.incidentnum}`,
+        title: `Dallas PD: ${call.offincident}`,
+        description: `${call.nibrs_crime_category} - ${call.division}`,
+        type: IncidentType.EMERGENCY,
+        severity: IncidentSeverity.MEDIUM,
+        location: {
+          lat: call.geocoded_column.coordinates[1],
+          lon: call.geocoded_column.coordinates[0],
+        },
+        locationName: `${call.division || 'Dallas'}, TX`,
+        timestamp: new Date(call.date1),
+        source: 'Dallas PD CAD LIVE',
+      }));
+  } catch (error) {
+    console.error('Error fetching Dallas real-time 911:', error);
+    return [];
+  }
+}
+
+// Philadelphia Police Radio (LIVE)
+export async function fetchPhillyRealTime911(): Promise<Incident[]> {
+  try {
+    const response = await fetch(
+      `https://phl.carto.com/api/v2/sql?q=SELECT * FROM incidents_part1_part2 ORDER BY dispatch_date_time DESC LIMIT 500`
+    );
+    if (!response.ok) throw new Error(`Philly 911 API error: ${response.status}`);
+    const data = await response.json();
+
+    return data.rows
+      .filter((call: any) => call.lat && call.lng)
+      .map((call: any) => ({
+        id: `philly-911-${call.dc_key}`,
+        title: `PPD: ${call.text_general_code}`,
+        description: `${call.ucr_general} - ${call.dc_dist}`,
+        type: IncidentType.EMERGENCY,
+        severity: IncidentSeverity.MEDIUM,
+        location: {
+          lat: parseFloat(call.lat),
+          lon: parseFloat(call.lng),
+        },
+        locationName: `${call.dc_dist || 'Philadelphia'}, PA`,
+        timestamp: new Date(call.dispatch_date_time),
+        source: 'Philadelphia PD CAD LIVE',
+      }));
+  } catch (error) {
+    console.error('Error fetching Philly real-time 911:', error);
+    return [];
+  }
+}
+
+// Denver Fire Real-Time (LIVE)
+export async function fetchDenverFireRealTime(): Promise<Incident[]> {
+  try {
+    const response = await fetch(
+      `https://www.denvergov.org/media/gis/DataCatalog/crime/csv/crime.csv`
+    );
+    // This is a CSV - would need parsing, skip for now
+    console.log('Denver: CSV format requires parsing');
+    return [];
+  } catch (error) {
+    console.error('Error fetching Denver fire real-time:', error);
+    return [];
+  }
+}

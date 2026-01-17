@@ -1,0 +1,975 @@
+import { useState, useEffect } from 'react';
+import { Incident } from '../types';
+import { fetchEarthquakes } from '../services/earthquakeService';
+import { fetchWeatherAlerts } from '../services/weatherService';
+import { fetchNASAEvents } from '../services/nasaService';
+import { fetchAviationIncidents } from '../services/aviationService';
+import {
+  fetchEmergencyIncidents,
+  fetchReliefWebEmergencies
+} from '../services/emergencyService';
+import { fetchGDELTEvents } from '../services/gdeltService';
+import {
+  fetchPulsePointIncidents,
+  fetch511TrafficIncidents,
+  fetchWazeIncidents,
+  fetchGlobalIncidentMap
+} from '../services/realtime911Service';
+import {
+  fetchSeattleRealTime911,
+  fetchNYCRealTime911,
+  fetchSFRealTime911,
+  fetchChicagoFireRealTime,
+  fetchBaltimoreRealTime911,
+  fetchLAFireRealTime,
+  fetchAustinEMSRealTime,
+  fetchDallasRealTime911,
+  fetchPhillyRealTime911
+} from '../services/cadFeeds';
+import {
+  fetchLACrimeData,
+  fetchChicagoCrimeData,
+  fetchSFCrimeData,
+  fetchNYCFireIncidents,
+  fetchSeattle911Calls,
+  fetchAustinCrimeData,
+  fetchPhiladelphiaCrimeData,
+  fetchBaltimoreCrimeData,
+  fetchDenverCrimeData,
+  fetchLondonCrimeData,
+  fetchTorontoCrimeData,
+  fetchBostonCrimeData,
+  fetchDetroitCrimeData,
+  fetchMinneapolisCrimeData,
+  fetchPhoenixCrimeData,
+  fetchDallasCrimeData,
+  fetchHoustonCrimeData,
+  fetchPortlandCrimeData,
+  fetchLasVegasCrimeData,
+  fetchAtlantaCrimeData,
+  fetchDCCrimeData,
+  fetchParisCrimeData,
+  fetchBerlinCrimeData,
+  fetchSydneyCrimeData,
+  fetchSingaporeCrimeData,
+  fetchSanAntonioCrimeData,
+  fetchIndianapolisCrimeData,
+  fetchColumbusCrimeData,
+  fetchCharlotteCrimeData,
+  fetchNashvilleCrimeData,
+  fetchMilwaukeeCrimeData,
+  fetchAlbuquerqueCrimeData,
+  fetchKansasCityCrimeData,
+  fetchMontrealCrimeData,
+  fetchMadridCrimeData,
+  fetchAmsterdamCrimeData,
+  fetchStockholmCrimeData,
+  fetchHongKongCrimeData,
+  fetchMelbourneCrimeData,
+  fetchMexicoCityCrimeData,
+  fetchBuenosAiresCrimeData,
+  fetchCapeTownCrimeData,
+  fetchFortWorthCrimeData,
+  fetchElPasoCrimeData,
+  fetchOklahomaCityCrimeData,
+  fetchTucsonCrimeData,
+  fetchFresnoCrimeData,
+  fetchSacramentoCrimeData,
+  fetchMesaCrimeData,
+  fetchLongBeachCrimeData,
+  fetchOaklandCrimeData,
+  fetchRaleighCrimeData,
+  fetchVirginiaCrimeData,
+  fetchOmahaCrimeData,
+  fetchMiamiCrimeData,
+  fetchTampaCrimeData,
+  fetchNewOrleansCrimeData,
+  fetchClevelandCrimeData,
+  fetchStLouisCrimeData,
+  fetchPittsburghCrimeData,
+  fetchCincinnatiCrimeData,
+  fetchHonoluluCrimeData
+} from '../services/crimeDataService';
+
+// Hook to fetch and manage incidents from real OSINT sources
+export function useIncidents() {
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const fetchIncidents = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching incidents from multiple OSINT sources...');
+
+        // Fetch from all sources in parallel
+        // These are all free, public APIs that don't require authentication
+        const [
+          earthquakes,
+          weatherAlerts,
+          nasaEvents,
+          aviationIncidents,
+          emergencyIncidents,
+          reliefWebEmergencies,
+          gdeltEvents,
+          pulsePointIncidents,
+          traffic511Incidents,
+          wazeIncidents,
+          globalIncidentMap,
+          seattleCAD,
+          nycCAD,
+          sfCAD,
+          chicagoCAD,
+          baltimoreCAD,
+          laFireCAD,
+          austinEMSCAD,
+          dallasCAD,
+          phillyCAD,
+          laCrime,
+          chicagoCrime,
+          sfCrime,
+          nycFire,
+          seattle911,
+          austinCrime,
+          phillyCrime,
+          baltimoreCrime,
+          denverCrime,
+          londonCrime,
+          torontoCrime,
+          bostonCrime,
+          detroitCrime,
+          minneapolisCrime,
+          phoenixCrime,
+          dallasCrime,
+          houstonCrime,
+          portlandCrime,
+          lasVegasCrime,
+          atlantaCrime,
+          dcCrime,
+          parisCrime,
+          berlinCrime,
+          sydneyCrime,
+          singaporeCrime,
+          sanAntonioCrime,
+          indianapolisCrime,
+          columbusCrime,
+          charlotteCrime,
+          nashvilleCrime,
+          milwaukeeCrime,
+          albuquerqueCrime,
+          kansasCityCrime,
+          montrealCrime,
+          madridCrime,
+          amsterdamCrime,
+          stockholmCrime,
+          hongKongCrime,
+          melbourneCrime,
+          mexicoCityCrime,
+          buenosAiresCrime,
+          capeTownCrime,
+          fortWorthCrime,
+          elPasoCrime,
+          oklahomaCityCrime,
+          tucsonCrime,
+          fresnoCrime,
+          sacramentoCrime,
+          mesaCrime,
+          longBeachCrime,
+          oaklandCrime,
+          raleighCrime,
+          virginiaCrime,
+          omahaCrime,
+          miamiCrime,
+          tampaCrime,
+          newOrleansCrime,
+          clevelandCrime,
+          stLouisCrime,
+          pittsburghCrime,
+          cincinnatiCrime,
+          honoluluCrime,
+        ] = await Promise.allSettled([
+          fetchEarthquakes(),
+          fetchWeatherAlerts(),
+          fetchNASAEvents(),
+          fetchAviationIncidents(),
+          fetchEmergencyIncidents(),
+          fetchReliefWebEmergencies(),
+          fetchGDELTEvents(),
+          fetchPulsePointIncidents(),
+          fetch511TrafficIncidents(),
+          fetchWazeIncidents(),
+          fetchGlobalIncidentMap(),
+          fetchSeattleRealTime911(),
+          fetchNYCRealTime911(),
+          fetchSFRealTime911(),
+          fetchChicagoFireRealTime(),
+          fetchBaltimoreRealTime911(),
+          fetchLAFireRealTime(),
+          fetchAustinEMSRealTime(),
+          fetchDallasRealTime911(),
+          fetchPhillyRealTime911(),
+          fetchLACrimeData(),
+          fetchChicagoCrimeData(),
+          fetchSFCrimeData(),
+          fetchNYCFireIncidents(),
+          fetchSeattle911Calls(),
+          fetchAustinCrimeData(),
+          fetchPhiladelphiaCrimeData(),
+          fetchBaltimoreCrimeData(),
+          fetchDenverCrimeData(),
+          fetchLondonCrimeData(),
+          fetchTorontoCrimeData(),
+          fetchBostonCrimeData(),
+          fetchDetroitCrimeData(),
+          fetchMinneapolisCrimeData(),
+          fetchPhoenixCrimeData(),
+          fetchDallasCrimeData(),
+          fetchHoustonCrimeData(),
+          fetchPortlandCrimeData(),
+          fetchLasVegasCrimeData(),
+          fetchAtlantaCrimeData(),
+          fetchDCCrimeData(),
+          fetchParisCrimeData(),
+          fetchBerlinCrimeData(),
+          fetchSydneyCrimeData(),
+          fetchSingaporeCrimeData(),
+          fetchSanAntonioCrimeData(),
+          fetchIndianapolisCrimeData(),
+          fetchColumbusCrimeData(),
+          fetchCharlotteCrimeData(),
+          fetchNashvilleCrimeData(),
+          fetchMilwaukeeCrimeData(),
+          fetchAlbuquerqueCrimeData(),
+          fetchKansasCityCrimeData(),
+          fetchMontrealCrimeData(),
+          fetchMadridCrimeData(),
+          fetchAmsterdamCrimeData(),
+          fetchStockholmCrimeData(),
+          fetchHongKongCrimeData(),
+          fetchMelbourneCrimeData(),
+          fetchMexicoCityCrimeData(),
+          fetchBuenosAiresCrimeData(),
+          fetchCapeTownCrimeData(),
+          fetchFortWorthCrimeData(),
+          fetchElPasoCrimeData(),
+          fetchOklahomaCityCrimeData(),
+          fetchTucsonCrimeData(),
+          fetchFresnoCrimeData(),
+          fetchSacramentoCrimeData(),
+          fetchMesaCrimeData(),
+          fetchLongBeachCrimeData(),
+          fetchOaklandCrimeData(),
+          fetchRaleighCrimeData(),
+          fetchVirginiaCrimeData(),
+          fetchOmahaCrimeData(),
+          fetchMiamiCrimeData(),
+          fetchTampaCrimeData(),
+          fetchNewOrleansCrimeData(),
+          fetchClevelandCrimeData(),
+          fetchStLouisCrimeData(),
+          fetchPittsburghCrimeData(),
+          fetchCincinnatiCrimeData(),
+          fetchHonoluluCrimeData(),
+        ]);
+
+        // Combine all successful results
+        const allIncidents: Incident[] = [];
+
+        if (earthquakes.status === 'fulfilled') {
+          allIncidents.push(...earthquakes.value);
+          console.log(`✓ Loaded ${earthquakes.value.length} earthquakes`);
+        } else {
+          console.warn('✗ Failed to load earthquakes:', earthquakes.reason);
+        }
+
+        if (weatherAlerts.status === 'fulfilled') {
+          allIncidents.push(...weatherAlerts.value);
+          console.log(`✓ Loaded ${weatherAlerts.value.length} weather alerts`);
+        } else {
+          console.warn('✗ Failed to load weather alerts:', weatherAlerts.reason);
+        }
+
+        if (nasaEvents.status === 'fulfilled') {
+          allIncidents.push(...nasaEvents.value);
+          console.log(`✓ Loaded ${nasaEvents.value.length} NASA events`);
+        } else {
+          console.warn('✗ Failed to load NASA events:', nasaEvents.reason);
+        }
+
+        if (aviationIncidents.status === 'fulfilled') {
+          allIncidents.push(...aviationIncidents.value);
+          console.log(`✓ Loaded ${aviationIncidents.value.length} aviation incidents`);
+        } else {
+          console.warn('✗ Failed to load aviation incidents:', aviationIncidents.reason);
+        }
+
+        if (emergencyIncidents.status === 'fulfilled') {
+          allIncidents.push(...emergencyIncidents.value);
+          console.log(`✓ Loaded ${emergencyIncidents.value.length} emergency incidents`);
+        } else {
+          console.warn('✗ Failed to load emergency incidents:', emergencyIncidents.reason);
+        }
+
+        if (reliefWebEmergencies.status === 'fulfilled') {
+          allIncidents.push(...reliefWebEmergencies.value);
+          console.log(`✓ Loaded ${reliefWebEmergencies.value.length} relief web emergencies`);
+        } else {
+          console.warn('✗ Failed to load relief web emergencies:', reliefWebEmergencies.reason);
+        }
+
+        if (gdeltEvents.status === 'fulfilled') {
+          allIncidents.push(...gdeltEvents.value);
+          console.log(`✓ Loaded ${gdeltEvents.value.length} GDELT events`);
+        } else {
+          console.warn('✗ Failed to load GDELT events:', gdeltEvents.reason);
+        }
+
+        if (pulsePointIncidents.status === 'fulfilled') {
+          allIncidents.push(...pulsePointIncidents.value);
+          console.log(`✓ Loaded ${pulsePointIncidents.value.length} PulsePoint real-time incidents`);
+          if (pulsePointIncidents.value.length === 0) console.warn('⚠ PulsePoint returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load PulsePoint:', pulsePointIncidents.reason);
+        }
+
+        if (traffic511Incidents.status === 'fulfilled') {
+          allIncidents.push(...traffic511Incidents.value);
+          console.log(`✓ Loaded ${traffic511Incidents.value.length} 511 traffic incidents`);
+          if (traffic511Incidents.value.length === 0) console.warn('⚠ 511 Traffic returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load 511 Traffic:', traffic511Incidents.reason);
+        }
+
+        if (wazeIncidents.status === 'fulfilled') {
+          allIncidents.push(...wazeIncidents.value);
+          console.log(`✓ Loaded ${wazeIncidents.value.length} Waze incidents`);
+          if (wazeIncidents.value.length === 0) console.warn('⚠ Waze returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Waze:', wazeIncidents.reason);
+        }
+
+        if (globalIncidentMap.status === 'fulfilled') {
+          allIncidents.push(...globalIncidentMap.value);
+          console.log(`✓ Loaded ${globalIncidentMap.value.length} Global Incident Map incidents`);
+          if (globalIncidentMap.value.length === 0) console.warn('⚠ Global Incident Map returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Global Incident Map:', globalIncidentMap.reason);
+        }
+
+        // Real-time CAD feeds
+        if (seattleCAD.status === 'fulfilled') {
+          allIncidents.push(...seattleCAD.value);
+          console.log(`✓ Loaded ${seattleCAD.value.length} Seattle 911 CAD LIVE`);
+        } else {
+          console.warn('✗ Failed to load Seattle CAD:', seattleCAD.reason);
+        }
+
+        if (nycCAD.status === 'fulfilled') {
+          allIncidents.push(...nycCAD.value);
+          console.log(`✓ Loaded ${nycCAD.value.length} NYC 311/911 CAD LIVE`);
+        } else {
+          console.warn('✗ Failed to load NYC CAD:', nycCAD.reason);
+        }
+
+        if (sfCAD.status === 'fulfilled') {
+          allIncidents.push(...sfCAD.value);
+          console.log(`✓ Loaded ${sfCAD.value.length} SF Fire CAD LIVE`);
+        } else {
+          console.warn('✗ Failed to load SF CAD:', sfCAD.reason);
+        }
+
+        if (chicagoCAD.status === 'fulfilled') {
+          allIncidents.push(...chicagoCAD.value);
+          console.log(`✓ Loaded ${chicagoCAD.value.length} Chicago Fire CAD LIVE`);
+        } else {
+          console.warn('✗ Failed to load Chicago CAD:', chicagoCAD.reason);
+        }
+
+        if (baltimoreCAD.status === 'fulfilled') {
+          allIncidents.push(...baltimoreCAD.value);
+          console.log(`✓ Loaded ${baltimoreCAD.value.length} Baltimore 911 CAD LIVE`);
+        } else {
+          console.warn('✗ Failed to load Baltimore CAD:', baltimoreCAD.reason);
+        }
+
+        if (laFireCAD.status === 'fulfilled') {
+          allIncidents.push(...laFireCAD.value);
+          console.log(`✓ Loaded ${laFireCAD.value.length} LA Fire CAD LIVE`);
+        } else {
+          console.warn('✗ Failed to load LA Fire CAD:', laFireCAD.reason);
+        }
+
+        if (austinEMSCAD.status === 'fulfilled') {
+          allIncidents.push(...austinEMSCAD.value);
+          console.log(`✓ Loaded ${austinEMSCAD.value.length} Austin EMS CAD LIVE`);
+        } else {
+          console.warn('✗ Failed to load Austin EMS CAD:', austinEMSCAD.reason);
+        }
+
+        if (dallasCAD.status === 'fulfilled') {
+          allIncidents.push(...dallasCAD.value);
+          console.log(`✓ Loaded ${dallasCAD.value.length} Dallas PD CAD LIVE`);
+        } else {
+          console.warn('✗ Failed to load Dallas CAD:', dallasCAD.reason);
+        }
+
+        if (phillyCAD.status === 'fulfilled') {
+          allIncidents.push(...phillyCAD.value);
+          console.log(`✓ Loaded ${phillyCAD.value.length} Philly PD CAD LIVE`);
+        } else {
+          console.warn('✗ Failed to load Philly CAD:', phillyCAD.reason);
+        }
+
+        if (laCrime.status === 'fulfilled') {
+          allIncidents.push(...laCrime.value);
+          console.log(`✓ Loaded ${laCrime.value.length} LA crime incidents`);
+        } else {
+          console.warn('✗ Failed to load LA crime data:', laCrime.reason);
+        }
+
+        if (chicagoCrime.status === 'fulfilled') {
+          allIncidents.push(...chicagoCrime.value);
+          console.log(`✓ Loaded ${chicagoCrime.value.length} Chicago crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Chicago crime data:', chicagoCrime.reason);
+        }
+
+        if (sfCrime.status === 'fulfilled') {
+          allIncidents.push(...sfCrime.value);
+          console.log(`✓ Loaded ${sfCrime.value.length} SF crime incidents`);
+        } else {
+          console.warn('✗ Failed to load SF crime data:', sfCrime.reason);
+        }
+
+        if (nycFire.status === 'fulfilled') {
+          allIncidents.push(...nycFire.value);
+          console.log(`✓ Loaded ${nycFire.value.length} NYC fire incidents`);
+        } else {
+          console.warn('✗ Failed to load NYC fire data:', nycFire.reason);
+        }
+
+        if (seattle911.status === 'fulfilled') {
+          allIncidents.push(...seattle911.value);
+          console.log(`✓ Loaded ${seattle911.value.length} Seattle 911 calls`);
+        } else {
+          console.warn('✗ Failed to load Seattle 911 data:', seattle911.reason);
+        }
+
+        if (austinCrime.status === 'fulfilled') {
+          allIncidents.push(...austinCrime.value);
+          console.log(`✓ Loaded ${austinCrime.value.length} Austin crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Austin crime data:', austinCrime.reason);
+        }
+
+        if (phillyCrime.status === 'fulfilled') {
+          allIncidents.push(...phillyCrime.value);
+          console.log(`✓ Loaded ${phillyCrime.value.length} Philadelphia crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Philadelphia crime data:', phillyCrime.reason);
+        }
+
+        if (baltimoreCrime.status === 'fulfilled') {
+          allIncidents.push(...baltimoreCrime.value);
+          console.log(`✓ Loaded ${baltimoreCrime.value.length} Baltimore crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Baltimore crime data:', baltimoreCrime.reason);
+        }
+
+        if (denverCrime.status === 'fulfilled') {
+          allIncidents.push(...denverCrime.value);
+          console.log(`✓ Loaded ${denverCrime.value.length} Denver crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Denver crime data:', denverCrime.reason);
+        }
+
+        if (londonCrime.status === 'fulfilled') {
+          allIncidents.push(...londonCrime.value);
+          console.log(`✓ Loaded ${londonCrime.value.length} London crime incidents`);
+        } else {
+          console.warn('✗ Failed to load London crime data:', londonCrime.reason);
+        }
+
+        if (torontoCrime.status === 'fulfilled') {
+          allIncidents.push(...torontoCrime.value);
+          console.log(`✓ Loaded ${torontoCrime.value.length} Toronto crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Toronto crime data:', torontoCrime.reason);
+        }
+
+        if (bostonCrime.status === 'fulfilled') {
+          allIncidents.push(...bostonCrime.value);
+          console.log(`✓ Loaded ${bostonCrime.value.length} Boston crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Boston crime data:', bostonCrime.reason);
+        }
+
+        if (detroitCrime.status === 'fulfilled') {
+          allIncidents.push(...detroitCrime.value);
+          console.log(`✓ Loaded ${detroitCrime.value.length} Detroit crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Detroit crime data:', detroitCrime.reason);
+        }
+
+        if (minneapolisCrime.status === 'fulfilled') {
+          allIncidents.push(...minneapolisCrime.value);
+          console.log(`✓ Loaded ${minneapolisCrime.value.length} Minneapolis crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Minneapolis crime data:', minneapolisCrime.reason);
+        }
+
+        if (phoenixCrime.status === 'fulfilled') {
+          allIncidents.push(...phoenixCrime.value);
+          console.log(`✓ Loaded ${phoenixCrime.value.length} Phoenix crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Phoenix crime data:', phoenixCrime.reason);
+        }
+
+        if (dallasCrime.status === 'fulfilled') {
+          allIncidents.push(...dallasCrime.value);
+          console.log(`✓ Loaded ${dallasCrime.value.length} Dallas crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Dallas crime data:', dallasCrime.reason);
+        }
+
+        if (houstonCrime.status === 'fulfilled') {
+          allIncidents.push(...houstonCrime.value);
+          console.log(`✓ Loaded ${houstonCrime.value.length} Houston crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Houston crime data:', houstonCrime.reason);
+        }
+
+        if (portlandCrime.status === 'fulfilled') {
+          allIncidents.push(...portlandCrime.value);
+          console.log(`✓ Loaded ${portlandCrime.value.length} Portland crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Portland crime data:', portlandCrime.reason);
+        }
+
+        if (lasVegasCrime.status === 'fulfilled') {
+          allIncidents.push(...lasVegasCrime.value);
+          console.log(`✓ Loaded ${lasVegasCrime.value.length} Las Vegas crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Las Vegas crime data:', lasVegasCrime.reason);
+        }
+
+        if (atlantaCrime.status === 'fulfilled') {
+          allIncidents.push(...atlantaCrime.value);
+          console.log(`✓ Loaded ${atlantaCrime.value.length} Atlanta crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Atlanta crime data:', atlantaCrime.reason);
+        }
+
+        if (dcCrime.status === 'fulfilled') {
+          allIncidents.push(...dcCrime.value);
+          console.log(`✓ Loaded ${dcCrime.value.length} DC crime incidents`);
+        } else {
+          console.warn('✗ Failed to load DC crime data:', dcCrime.reason);
+        }
+
+        if (parisCrime.status === 'fulfilled') {
+          allIncidents.push(...parisCrime.value);
+          console.log(`✓ Loaded ${parisCrime.value.length} Paris crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Paris crime data:', parisCrime.reason);
+        }
+
+        if (berlinCrime.status === 'fulfilled') {
+          allIncidents.push(...berlinCrime.value);
+          console.log(`✓ Loaded ${berlinCrime.value.length} Berlin crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Berlin crime data:', berlinCrime.reason);
+        }
+
+        if (sydneyCrime.status === 'fulfilled') {
+          allIncidents.push(...sydneyCrime.value);
+          console.log(`✓ Loaded ${sydneyCrime.value.length} Sydney crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Sydney crime data:', sydneyCrime.reason);
+        }
+
+        if (singaporeCrime.status === 'fulfilled') {
+          allIncidents.push(...singaporeCrime.value);
+          console.log(`✓ Loaded ${singaporeCrime.value.length} Singapore crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Singapore crime data:', singaporeCrime.reason);
+        }
+
+        if (sanAntonioCrime.status === 'fulfilled') {
+          allIncidents.push(...sanAntonioCrime.value);
+          console.log(`✓ Loaded ${sanAntonioCrime.value.length} San Antonio crime incidents`);
+        } else {
+          console.warn('✗ Failed to load San Antonio crime data:', sanAntonioCrime.reason);
+        }
+
+        if (indianapolisCrime.status === 'fulfilled') {
+          allIncidents.push(...indianapolisCrime.value);
+          console.log(`✓ Loaded ${indianapolisCrime.value.length} Indianapolis crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Indianapolis crime data:', indianapolisCrime.reason);
+        }
+
+        if (columbusCrime.status === 'fulfilled') {
+          allIncidents.push(...columbusCrime.value);
+          console.log(`✓ Loaded ${columbusCrime.value.length} Columbus crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Columbus crime data:', columbusCrime.reason);
+        }
+
+        if (charlotteCrime.status === 'fulfilled') {
+          allIncidents.push(...charlotteCrime.value);
+          console.log(`✓ Loaded ${charlotteCrime.value.length} Charlotte crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Charlotte crime data:', charlotteCrime.reason);
+        }
+
+        if (nashvilleCrime.status === 'fulfilled') {
+          allIncidents.push(...nashvilleCrime.value);
+          console.log(`✓ Loaded ${nashvilleCrime.value.length} Nashville crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Nashville crime data:', nashvilleCrime.reason);
+        }
+
+        if (milwaukeeCrime.status === 'fulfilled') {
+          allIncidents.push(...milwaukeeCrime.value);
+          console.log(`✓ Loaded ${milwaukeeCrime.value.length} Milwaukee crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Milwaukee crime data:', milwaukeeCrime.reason);
+        }
+
+        if (albuquerqueCrime.status === 'fulfilled') {
+          allIncidents.push(...albuquerqueCrime.value);
+          console.log(`✓ Loaded ${albuquerqueCrime.value.length} Albuquerque crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Albuquerque crime data:', albuquerqueCrime.reason);
+        }
+
+        if (kansasCityCrime.status === 'fulfilled') {
+          allIncidents.push(...kansasCityCrime.value);
+          console.log(`✓ Loaded ${kansasCityCrime.value.length} Kansas City crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Kansas City crime data:', kansasCityCrime.reason);
+        }
+
+        if (montrealCrime.status === 'fulfilled') {
+          allIncidents.push(...montrealCrime.value);
+          console.log(`✓ Loaded ${montrealCrime.value.length} Montreal crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Montreal crime data:', montrealCrime.reason);
+        }
+
+        if (madridCrime.status === 'fulfilled') {
+          allIncidents.push(...madridCrime.value);
+          console.log(`✓ Loaded ${madridCrime.value.length} Madrid crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Madrid crime data:', madridCrime.reason);
+        }
+
+        if (amsterdamCrime.status === 'fulfilled') {
+          allIncidents.push(...amsterdamCrime.value);
+          console.log(`✓ Loaded ${amsterdamCrime.value.length} Amsterdam crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Amsterdam crime data:', amsterdamCrime.reason);
+        }
+
+        if (stockholmCrime.status === 'fulfilled') {
+          allIncidents.push(...stockholmCrime.value);
+          console.log(`✓ Loaded ${stockholmCrime.value.length} Stockholm crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Stockholm crime data:', stockholmCrime.reason);
+        }
+
+        if (hongKongCrime.status === 'fulfilled') {
+          allIncidents.push(...hongKongCrime.value);
+          console.log(`✓ Loaded ${hongKongCrime.value.length} Hong Kong crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Hong Kong crime data:', hongKongCrime.reason);
+        }
+
+        if (melbourneCrime.status === 'fulfilled') {
+          allIncidents.push(...melbourneCrime.value);
+          console.log(`✓ Loaded ${melbourneCrime.value.length} Melbourne crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Melbourne crime data:', melbourneCrime.reason);
+        }
+
+        if (mexicoCityCrime.status === 'fulfilled') {
+          allIncidents.push(...mexicoCityCrime.value);
+          console.log(`✓ Loaded ${mexicoCityCrime.value.length} Mexico City crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Mexico City crime data:', mexicoCityCrime.reason);
+        }
+
+        if (buenosAiresCrime.status === 'fulfilled') {
+          allIncidents.push(...buenosAiresCrime.value);
+          console.log(`✓ Loaded ${buenosAiresCrime.value.length} Buenos Aires crime incidents`);
+        } else {
+          console.warn('✗ Failed to load Buenos Aires crime data:', buenosAiresCrime.reason);
+        }
+
+        if (capeTownCrime.status === 'fulfilled') {
+          allIncidents.push(...capeTownCrime.value);
+          console.log(`✓ Loaded ${capeTownCrime.value.length} Cape Town crime incidents`);
+          if (capeTownCrime.value.length === 0) console.warn('⚠ Cape Town returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Cape Town crime data:', capeTownCrime.reason);
+        }
+
+        if (fortWorthCrime.status === 'fulfilled') {
+          allIncidents.push(...fortWorthCrime.value);
+          console.log(`✓ Loaded ${fortWorthCrime.value.length} Fort Worth crime incidents`);
+          if (fortWorthCrime.value.length === 0) console.warn('⚠ Fort Worth returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Fort Worth crime data:', fortWorthCrime.reason);
+        }
+
+        if (elPasoCrime.status === 'fulfilled') {
+          allIncidents.push(...elPasoCrime.value);
+          console.log(`✓ Loaded ${elPasoCrime.value.length} El Paso crime incidents`);
+          if (elPasoCrime.value.length === 0) console.warn('⚠ El Paso returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load El Paso crime data:', elPasoCrime.reason);
+        }
+
+        if (oklahomaCityCrime.status === 'fulfilled') {
+          allIncidents.push(...oklahomaCityCrime.value);
+          console.log(`✓ Loaded ${oklahomaCityCrime.value.length} Oklahoma City crime incidents`);
+          if (oklahomaCityCrime.value.length === 0) console.warn('⚠ Oklahoma City returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Oklahoma City crime data:', oklahomaCityCrime.reason);
+        }
+
+        if (tucsonCrime.status === 'fulfilled') {
+          allIncidents.push(...tucsonCrime.value);
+          console.log(`✓ Loaded ${tucsonCrime.value.length} Tucson crime incidents`);
+          if (tucsonCrime.value.length === 0) console.warn('⚠ Tucson returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Tucson crime data:', tucsonCrime.reason);
+        }
+
+        if (fresnoCrime.status === 'fulfilled') {
+          allIncidents.push(...fresnoCrime.value);
+          console.log(`✓ Loaded ${fresnoCrime.value.length} Fresno crime incidents`);
+          if (fresnoCrime.value.length === 0) console.warn('⚠ Fresno returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Fresno crime data:', fresnoCrime.reason);
+        }
+
+        if (sacramentoCrime.status === 'fulfilled') {
+          allIncidents.push(...sacramentoCrime.value);
+          console.log(`✓ Loaded ${sacramentoCrime.value.length} Sacramento crime incidents`);
+          if (sacramentoCrime.value.length === 0) console.warn('⚠ Sacramento returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Sacramento crime data:', sacramentoCrime.reason);
+        }
+
+        if (mesaCrime.status === 'fulfilled') {
+          allIncidents.push(...mesaCrime.value);
+          console.log(`✓ Loaded ${mesaCrime.value.length} Mesa crime incidents`);
+          if (mesaCrime.value.length === 0) console.warn('⚠ Mesa returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Mesa crime data:', mesaCrime.reason);
+        }
+
+        if (longBeachCrime.status === 'fulfilled') {
+          allIncidents.push(...longBeachCrime.value);
+          console.log(`✓ Loaded ${longBeachCrime.value.length} Long Beach crime incidents`);
+          if (longBeachCrime.value.length === 0) console.warn('⚠ Long Beach returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Long Beach crime data:', longBeachCrime.reason);
+        }
+
+        if (oaklandCrime.status === 'fulfilled') {
+          allIncidents.push(...oaklandCrime.value);
+          console.log(`✓ Loaded ${oaklandCrime.value.length} Oakland crime incidents`);
+          if (oaklandCrime.value.length === 0) console.warn('⚠ Oakland returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Oakland crime data:', oaklandCrime.reason);
+        }
+
+        if (raleighCrime.status === 'fulfilled') {
+          allIncidents.push(...raleighCrime.value);
+          console.log(`✓ Loaded ${raleighCrime.value.length} Raleigh crime incidents`);
+          if (raleighCrime.value.length === 0) console.warn('⚠ Raleigh returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Raleigh crime data:', raleighCrime.reason);
+        }
+
+        if (virginiaCrime.status === 'fulfilled') {
+          allIncidents.push(...virginiaCrime.value);
+          console.log(`✓ Loaded ${virginiaCrime.value.length} Virginia Beach crime incidents`);
+          if (virginiaCrime.value.length === 0) console.warn('⚠ Virginia Beach returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Virginia Beach crime data:', virginiaCrime.reason);
+        }
+
+        if (omahaCrime.status === 'fulfilled') {
+          allIncidents.push(...omahaCrime.value);
+          console.log(`✓ Loaded ${omahaCrime.value.length} Omaha crime incidents`);
+          if (omahaCrime.value.length === 0) console.warn('⚠ Omaha returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Omaha crime data:', omahaCrime.reason);
+        }
+
+        if (miamiCrime.status === 'fulfilled') {
+          allIncidents.push(...miamiCrime.value);
+          console.log(`✓ Loaded ${miamiCrime.value.length} Miami crime incidents`);
+          if (miamiCrime.value.length === 0) console.warn('⚠ Miami returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Miami crime data:', miamiCrime.reason);
+        }
+
+        if (tampaCrime.status === 'fulfilled') {
+          allIncidents.push(...tampaCrime.value);
+          console.log(`✓ Loaded ${tampaCrime.value.length} Tampa crime incidents`);
+          if (tampaCrime.value.length === 0) console.warn('⚠ Tampa returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Tampa crime data:', tampaCrime.reason);
+        }
+
+        if (newOrleansCrime.status === 'fulfilled') {
+          allIncidents.push(...newOrleansCrime.value);
+          console.log(`✓ Loaded ${newOrleansCrime.value.length} New Orleans crime incidents`);
+          if (newOrleansCrime.value.length === 0) console.warn('⚠ New Orleans returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load New Orleans crime data:', newOrleansCrime.reason);
+        }
+
+        if (clevelandCrime.status === 'fulfilled') {
+          allIncidents.push(...clevelandCrime.value);
+          console.log(`✓ Loaded ${clevelandCrime.value.length} Cleveland crime incidents`);
+          if (clevelandCrime.value.length === 0) console.warn('⚠ Cleveland returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Cleveland crime data:', clevelandCrime.reason);
+        }
+
+        if (stLouisCrime.status === 'fulfilled') {
+          allIncidents.push(...stLouisCrime.value);
+          console.log(`✓ Loaded ${stLouisCrime.value.length} St. Louis crime incidents`);
+          if (stLouisCrime.value.length === 0) console.warn('⚠ St. Louis returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load St. Louis crime data:', stLouisCrime.reason);
+        }
+
+        if (pittsburghCrime.status === 'fulfilled') {
+          allIncidents.push(...pittsburghCrime.value);
+          console.log(`✓ Loaded ${pittsburghCrime.value.length} Pittsburgh crime incidents`);
+          if (pittsburghCrime.value.length === 0) console.warn('⚠ Pittsburgh returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Pittsburgh crime data:', pittsburghCrime.reason);
+        }
+
+        if (cincinnatiCrime.status === 'fulfilled') {
+          allIncidents.push(...cincinnatiCrime.value);
+          console.log(`✓ Loaded ${cincinnatiCrime.value.length} Cincinnati crime incidents`);
+          if (cincinnatiCrime.value.length === 0) console.warn('⚠ Cincinnati returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Cincinnati crime data:', cincinnatiCrime.reason);
+        }
+
+        if (honoluluCrime.status === 'fulfilled') {
+          allIncidents.push(...honoluluCrime.value);
+          console.log(`✓ Loaded ${honoluluCrime.value.length} Honolulu crime incidents`);
+          if (honoluluCrime.value.length === 0) console.warn('⚠ Honolulu returned 0 incidents');
+        } else {
+          console.warn('✗ Failed to load Honolulu crime data:', honoluluCrime.reason);
+        }
+
+        // STRICT 24-HOUR FILTER - Remove ALL incidents older than 24 hours
+        const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+        const recentIncidents = allIncidents.filter(incident => {
+          const incidentTime = new Date(incident.timestamp).getTime();
+          return incidentTime >= twentyFourHoursAgo;
+        });
+
+        console.log(`\n========== 24-HOUR FILTER ==========`);
+        console.log(`Before filter: ${allIncidents.length} incidents`);
+        console.log(`After filter: ${recentIncidents.length} incidents (last 24 hours only)`);
+        console.log(`Filtered out: ${allIncidents.length - recentIncidents.length} old incidents`);
+
+        // Remove duplicates based on location and title
+        const uniqueIncidents = deduplicateIncidents(recentIncidents);
+
+        // Sort by timestamp (most recent first)
+        uniqueIncidents.sort((a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+
+        // Limit total incidents to prevent performance issues
+        const limitedIncidents = uniqueIncidents.slice(0, 1000);
+
+        console.log(`✓ Total unique incidents: ${limitedIncidents.length}`);
+
+        setIncidents(limitedIncidents);
+        setLastUpdate(new Date());
+        setError(null);
+      } catch (err) {
+        const errorMessage = 'Failed to fetch incidents from OSINT sources';
+        setError(errorMessage);
+        console.error(errorMessage, err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchIncidents();
+
+    // Poll for new incidents every 2 minutes (to respect API rate limits)
+    const interval = setInterval(fetchIncidents, 120000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return { incidents, loading, error, lastUpdate };
+}
+
+// Remove duplicate incidents based on proximity and similarity
+function deduplicateIncidents(incidents: Incident[]): Incident[] {
+  const unique: Incident[] = [];
+
+  incidents.forEach((incident) => {
+    const isDuplicate = unique.some((existing) => {
+      // Check if same location (within 10km) and similar title
+      const distance = calculateDistance(
+        incident.location.lat,
+        incident.location.lon,
+        existing.location.lat,
+        existing.location.lon
+      );
+
+      const titleSimilar =
+        incident.title.toLowerCase().includes(existing.title.toLowerCase().substring(0, 20)) ||
+        existing.title.toLowerCase().includes(incident.title.toLowerCase().substring(0, 20));
+
+      return distance < 3 && titleSimilar;
+    });
+
+    if (!isDuplicate) {
+      unique.push(incident);
+    }
+  });
+
+  return unique;
+}
+
+// Calculate distance between two coordinates in kilometers
+function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
